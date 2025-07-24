@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>폭발물 해체 미션</title>
+  <title>1→20 순서대로 클릭 퀴즈</title>
   <style>
     html, body {
       margin:0; padding:0;
@@ -37,7 +37,6 @@
       user-select:none;
       box-shadow:0 2px 4px rgba(0,0,0,0.5);
     }
-    /* 첫화면 오버레이 */
     #introOverlay, #overlay, #successOverlay {
       display:flex;
       position:fixed; top:0; left:0;
@@ -52,7 +51,7 @@
     }
     #introOverlay div {
       margin:8px 0;
-      font-size:2.5vw;
+      font-size: 2.5vw;
       line-height:1.4;
     }
     #introOverlay button,
@@ -62,9 +61,13 @@
       font-size:2.5vw;
       cursor:pointer;
     }
-    #overlay { font-size:28px; }
-    #successOverlay { font-size:3vw; }
-    #successOverlay div + div { margin-top:10px; font-size:3vw; }
+    #successOverlay {
+      font-size:3vw;
+    }
+    #successOverlay div + div {
+      margin-top:10px;
+      font-size:2vw;
+    }
   </style>
 </head>
 <body>
@@ -80,18 +83,17 @@
 
   <!-- 실패 팝업 -->
   <div id="overlay" style="display:none">
-    <div>시간 초과! 다시 도전하시겠습니까?</div>
+    <div>시간 초과! 다시 도전?</div>
     <button id="retryBtn">Retry</button>
   </div>
 
   <!-- 성공 팝업 -->
   <div id="successOverlay" style="display:none">
     <div>폭발물 해제 성공</div>
-    <div>입장 비밀번호는 "4869"입니다.</div>
     <div>창을 닫고 ZEP으로 돌아가세요</div>
   </div>
 
-  <audio id="bgm" loop></audio>
+  <audio id="bgm" muted></audio>
   <audio id="failSound" preload="auto"></audio>
 
   <script>
@@ -104,18 +106,25 @@
     // 배경 이미지
     if (bgImageUrl) document.body.style.backgroundImage = `url('${bgImageUrl}')`;
 
-    // 배경음악 세팅 (시작 버튼 클릭 시 재생)
     const bgm = document.getElementById('bgm');
     if (bgMusicUrl) {
       bgm.src = bgMusicUrl;
       bgm.volume = 0.5;
+      bgm.muted = true; // 자동재생용 mute
+      bgm.addEventListener('ended', () => {
+        bgm.currentTime = 0;
+        bgm.play().catch(()=>{});
+      });
     }
 
-    // 실패 효과음 세팅
     const failSound = document.getElementById('failSound');
     if (failSoundUrl) failSound.src = failSoundUrl;
 
-    // 원 생성 (비겹치게 + 100px 여백)
+    function playBGM() {
+      bgm.muted = false;
+      bgm.play().catch(()=>{});
+    }
+
     function createCircles(){
       const w = innerWidth, h = innerHeight, dia = 60, m = 100;
       const placed = [];
@@ -147,16 +156,14 @@
 
     function success(){
       clearInterval(timerId);
-      bgm.pause();
-      bgm.currentTime = 0;
+      bgm.pause(); bgm.currentTime = 0;
       window.parent.postMessage({type:'ZEP_QUIZ', result:'success'}, '*');
       document.getElementById('successOverlay').style.display = 'flex';
     }
 
     function fail(){
       clearInterval(timerId);
-      bgm.pause();
-      bgm.currentTime = 0;
+      bgm.pause(); bgm.currentTime = 0;
       if (failSound.src) failSound.play();
       window.parent.postMessage({type:'ZEP_QUIZ', result:'failure'}, '*');
       document.getElementById('overlay').style.display = 'flex';
@@ -180,24 +187,23 @@
       document.getElementById('overlay').style.display = 'none';
       document.getElementById('successOverlay').style.display = 'none';
       document.querySelectorAll('.circle').forEach(el=>el.remove());
+      playBGM();
       next = 1; time = 30.0;
       document.getElementById('timer').textContent = time.toFixed(1);
-      // retry시에도 배경음악 재생
-      bgm.currentTime = 0;
-      bgm.play().catch(()=>{});
       createCircles();
       startTimer();
     }
 
-    // 시작 버튼 클릭 시
     document.getElementById('startBtn').onclick = ()=>{
       document.getElementById('introOverlay').style.display = 'none';
-      bgm.currentTime = 0;
-      bgm.play().catch(()=>{});
+      playBGM();
       resetGame();
     };
-    // 재시도 버튼
-    document.getElementById('retryBtn').onclick = resetGame;
+
+    document.getElementById('retryBtn').onclick = ()=>{
+      playBGM();
+      resetGame();
+    };
   </script>
 </body>
 </html>
